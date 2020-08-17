@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"github.com/gruntwork-io/terratest/modules/retry"
 	"net"
 	"os"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	"github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/packer"
 	"github.com/gruntwork-io/terratest/modules/random"
-	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 	"github.com/stretchr/testify/assert"
@@ -173,82 +173,88 @@ func fetchSyslogForInstance(t *testing.T, awsRegion string, workingDir string) {
 
 func validateInstanceRunningHAProxyStats(t *testing.T, workingDir string) {
 
-	statsURL := getFromEnv(t, workingDir, "stats_url")
+	t.Run("HAProxy Stats Available", func(t *testing.T) {
 
-	maxRetries := 3
-	timeBetweenRetries := 5 * time.Second
+		statsURL := getFromEnv(t, workingDir, "stats_url")
 
-	validate := func(statusCode int, body string) bool {
-		return 200 == statusCode && strings.Contains(body, "Statistics Report for")
-	}
-	http_helper.HttpGetWithRetryWithCustomValidation(t, statsURL, maxRetries, timeBetweenRetries, validate)
+		maxRetries := 3
+		timeBetweenRetries := 5 * time.Second
+
+		validate := func(statusCode int, body string) bool {
+			return 200 == statusCode && strings.Contains(body, "Statistics Report for")
+		}
+		http_helper.HttpGetWithRetryWithCustomValidation(t, statsURL, maxRetries, timeBetweenRetries, validate)
+	})
+
 }
 
 func validateInstanceRunningHAProxy(t *testing.T, workingDir string, port int) {
 
-	publicIP := getFromEnv(t, workingDir, "public_ip")
+	t.Run("HAProxy Running", func(t *testing.T) {
+		publicIP := getFromEnv(t, workingDir, "public_ip")
 
-	server := fmt.Sprintf("%s:%d", publicIP, port)
+		server := fmt.Sprintf("%s:%d", publicIP, port)
 
-	maxRetries := 3
-	timeBetweenRetries := 5 * time.Second
-	dialTimeout := 5 * time.Second
+		maxRetries := 3
+		timeBetweenRetries := 5 * time.Second
+		dialTimeout := 5 * time.Second
 
-	_, err := retry.DoWithRetryE(t, fmt.Sprintf("TCP connect to server %s", server), maxRetries, timeBetweenRetries, func() (string, error) {
-		conn, err := net.DialTimeout("tcp", server, dialTimeout)
-		if conn != nil {
-			defer conn.Close()
+		_, err := retry.DoWithRetryE(t, fmt.Sprintf("TCP connect to server %s", server), maxRetries, timeBetweenRetries, func() (string, error) {
+			conn, err := net.DialTimeout("tcp", server, dialTimeout)
+			if conn != nil {
+				defer conn.Close()
+			}
+
+			return "", err
+		})
+
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		return "", err
 	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func validateInstanceRunningHAProxyPrometheusExporter(t *testing.T, workingDir string) {
 
-	haproxyExporterURL := getFromEnv(t, workingDir, "haproxy_exporter_url")
-	maxRetries := 3
-	timeBetweenRetries := 5 * time.Second
+	t.Run("HAProxy Exporter Running", func(t *testing.T) {
 
-	validate := func(statusCode int, body string) bool {
-		return 200 == statusCode && strings.Contains(body, "haproxy_up 1")
-	}
-	http_helper.HttpGetWithRetryWithCustomValidation(t, haproxyExporterURL, maxRetries, timeBetweenRetries, validate)
-}
+		haproxyExporterURL := getFromEnv(t, workingDir, "haproxy_exporter_url")
+		maxRetries := 3
+		timeBetweenRetries := 5 * time.Second
 
-func validateInstanceRunningHAProxyBBCHealthcheck(t *testing.T, workingDir string) {
+		validate := func(statusCode int, body string) bool {
+			return 200 == statusCode && strings.Contains(body, "haproxy_up 1")
+		}
+		http_helper.HttpGetWithRetryWithCustomValidation(t, haproxyExporterURL, maxRetries, timeBetweenRetries, validate)
 
-	dtaxHealthcheckURL := getFromEnv(t, workingDir, "bbc_healthcheck_url")
-	maxRetries := 3
-	timeBetweenRetries := 5 * time.Second
+	})
 
-	validate := func(statusCode int, body string) bool {
-		return 200 == statusCode
-	}
-	http_helper.HttpGetWithRetryWithCustomValidation(t, dtaxHealthcheckURL, maxRetries, timeBetweenRetries, validate)
 }
 
 func validateinstanceRunningSSM(t *testing.T, workingDir string) {
-	instanceID := getFromEnv(t, workingDir, "instance_id")
 
-	ssmClient := aws.NewSsmClient(t, awsRegion)
-	input := &ssm.StartSessionInput{
-		Target: &instanceID,
-	}
-	output, err := ssmClient.StartSession(input)
+	t.Run("Instance Running SSM", func(t *testing.T) {
+		instanceID := getFromEnv(t, workingDir, "instance_id")
 
-	if err != nil {
-		t.Fatal(err)
-	}
+		ssmClient := aws.NewSsmClient(t, awsRegion)
+		input := &ssm.StartSessionInput{
+			Target: &instanceID,
+		}
+		output, err := ssmClient.StartSession(input)
 
-	terminateInput := &ssm.TerminateSessionInput{
-		SessionId: output.SessionId,
-	}
-	_, _ = ssmClient.TerminateSession(terminateInput)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		terminateInput := &ssm.TerminateSessionInput{
+			SessionId: output.SessionId,
+		}
+		_, _ = ssmClient.TerminateSession(terminateInput)
+
+	})
+
 }
 
 func validateInstanceRunningNodeExporter(t *testing.T, workingDir string) {
