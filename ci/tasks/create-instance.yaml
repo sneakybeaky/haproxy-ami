@@ -27,11 +27,11 @@ run:
       echo "Deploying..."
       AMI=$(cat ami-id/amiID)
       VERSION=$(cat ami-id/version)
-      terraform init source/haproxy/test/terraform-packer
+      terraform init source/test/terraform-packer
       terraform apply -auto-approve -state-out=tfstate/terraform.tfstate \
         -var "ami_id=$AMI" \
         -var "prefix=$VERSION" \
         -var "aws_region=$AWS_DEFAULT_REGION" \
         -var "instance_name=terratest-http-example-$VERSION" \
-        source/haproxy/test/terraform-packer
+        source/test/terraform-packer
       terraform output -state=tfstate/terraform.tfstate > tfoutput/output

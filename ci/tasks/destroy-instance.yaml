@@ -24,8 +24,8 @@ run:
       echo "Destroying..."
       AMI=$(cat ami-id/amiID)
       VERSION=$(cat ami-id/version)
-      cp tfstate/terraform.tfstate source/haproxy/test/terraform-packer/terraform.tfstate
-      cd source/haproxy/test/terraform-packer
+      cp tfstate/terraform.tfstate source/test/terraform-packer/terraform.tfstate
+      cd source/test/terraform-packer
       terraform init
       terraform destroy -auto-approve \
         -var "ami_id=$AMI" \

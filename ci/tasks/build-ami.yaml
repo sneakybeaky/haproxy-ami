@@ -23,8 +23,8 @@ run:
     - -exec
     - |
       echo "Building..."
-      packer validate source/haproxy/build.json
-      packer build -var "region=$AWS_DEFAULT_REGION" -machine-readable source/haproxy/build.json | \
+      packer validate source/build.json
+      packer build -var "region=$AWS_DEFAULT_REGION" -machine-readable source/build.json | \
         tee /tmp/output
       grep -q -v "error-count" /tmp/output
       AMI=$(awk -F: '/artifact,0,id/ { print $2 }' /tmp/output)

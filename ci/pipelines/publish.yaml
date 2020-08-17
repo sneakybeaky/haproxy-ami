@@ -2,33 +2,29 @@ resources:
   - name: source-repo
     type: git
     source:
-      uri: https://github.com/states-of-guernsey/aws-amis.git
+      uri: https://github.com/sneakybeaky/haproxy-ami.git
       branch: master
-      paths:
-        - haproxy/
-      username: ((github.username))
-      password: ((github.password))
   - name: ami-id
     type: s3
     source:
-      region_name: eu-west-1
-      bucket: ((build_artifacts_bucket.bucket_name))
+      region_name: eu-west-2
+      bucket: 566231541642-build-artifacts
       access_key_id: ((build_artifacts_bucket.access_key_id))
       secret_access_key: ((build_artifacts_bucket.secret_access_key))
       versioned_file: haproxy-AMI/amiID
   - name: tfstate
     type: s3
     source:
-      region_name: eu-west-1
-      bucket: ((build_artifacts_bucket.bucket_name))
+      region_name: eu-west-2
+      bucket: 566231541642-build-artifacts
       access_key_id: ((build_artifacts_bucket.access_key_id))
       secret_access_key: ((build_artifacts_bucket.secret_access_key))
       versioned_file: haproxy-AMI/terraform.tfstate
   - name: tfoutput
     type: s3
     source:
-      region_name: eu-west-1
-      bucket: ((build_artifacts_bucket.bucket_name))
+      region_name: eu-west-2
+      bucket: 566231541642-build-artifacts
       access_key_id: ((build_artifacts_bucket.access_key_id))
       secret_access_key: ((build_artifacts_bucket.secret_access_key))
       versioned_file: haproxy-AMI/output
@@ -39,7 +35,7 @@ jobs:
       - get: source-repo
         trigger: true
       - task: "packer build"
-        file: source-repo/haproxy/ci/tasks/build-ami.yaml
+        file: source-repo/ci/tasks/build-ami.yaml
         input_mapping:
           source: source-repo
         params:
@@ -59,7 +55,7 @@ jobs:
         passed: [build]
         trigger: true
       - task: "create instance"
-        file: source-repo/haproxy/ci/tasks/create-instance.yaml
+        file: source-repo/ci/tasks/create-instance.yaml
         input_mapping:
           source: source-repo
         params:
@@ -68,7 +64,7 @@ jobs:
           AWS_DEFAULT_REGION: eu-west-1
         on_failure:
           task: "destroy instance"
-          file: source-repo/haproxy/ci/tasks/destroy-instance.yaml
+          file: source-repo/ci/tasks/destroy-instance.yaml
           input_mapping:
             source: source-repo
           params:
@@ -97,7 +93,7 @@ jobs:
         passed: [deploy-for-tests]
         trigger: true
       - task: "run tests"
-        file: source-repo/haproxy/ci/tasks/run-tests.yaml
+        file: source-repo/ci/tasks/run-tests.yaml
         input_mapping:
           source: source-repo
         params:
@@ -146,7 +142,7 @@ jobs:
         passed: [publish]
         trigger: true
       - task: "destroy instance"
-        file: source-repo/haproxy/ci/tasks/destroy-instance.yaml
+        file: source-repo/ci/tasks/destroy-instance.yaml
         input_mapping:
           source: source-repo
         params:

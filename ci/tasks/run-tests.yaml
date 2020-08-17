@@ -23,7 +23,7 @@ run:
     - |
       echo "Testing..."
       while IFS= read -r line; do l=$(echo $line | tr -d ' '); export $l ; done < tfoutput/output
-      cd source/haproxy/test
+      cd source/test
       export SKIP_logs=true
       export SKIP_build_ami=true
       export SKIP_deploy_terraform=true
