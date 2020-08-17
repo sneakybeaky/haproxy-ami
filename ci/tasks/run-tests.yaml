@@ -16,6 +16,9 @@ inputs:
   - name: tfstate
   - name: tfoutput
 
+caches:
+  - path: gopath/
+
 run:
   path: /bin/bash
   args:
@@ -23,6 +26,9 @@ run:
     - |
       echo "Testing..."
       while IFS= read -r line; do l=$(echo $line | tr -d ' '); export $l ; done < tfoutput/output
+
+      export GOPATH=$PWD/gopath
+
       cd source/test
       export SKIP_logs=true
       export SKIP_build_ami=true
