@@ -3,7 +3,7 @@ resources:
     type: git
     source:
       uri: https://github.com/sneakybeaky/haproxy-ami.git
-      branch: master
+      branch: main
   - name: ami-id
     type: s3
     source:
