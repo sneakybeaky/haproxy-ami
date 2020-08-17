@@ -33,10 +33,9 @@ const workingDir string = "./terraform-packer"
 
 const packerTemplate string = "../build.json"
 
-const awsRegion string = "eu-west-1"
+const awsRegion string = "eu-west-2"
 
-// cenas
-func TestDeployAndBehaviourDev(t *testing.T) {
+func TestDeployAndBehaviour(t *testing.T) {
 	t.Parallel()
 
 	defer test_structure.RunTestStage(t, "cleanup_ami", func() {
@@ -67,10 +66,8 @@ func TestDeployAndBehaviourDev(t *testing.T) {
 	test_structure.RunTestStage(t, "validate", func() {
 		validateInstanceRunningHAProxyStats(t, workingDir)
 		validateInstanceRunningHAProxy(t, workingDir, 9102)
-		validateInstanceRunningHAProxy(t, workingDir, 9002)
 		validateInstanceRunningHAProxyPrometheusExporter(t, workingDir)
-		validateInstanceRunningHAProxyDTaxHealthcheck(t, workingDir)
-		validateInstanceRunningHAProxyITaxHealthcheck(t, workingDir)
+		//validateInstanceRunningHAProxyBBCHealthcheck(t, workingDir)
 		validateinstanceRunningSSM(t, workingDir)
 		validateInstanceRunningNodeExporter(t, workingDir)
 		validateCloudWatchLogs(t, workingDir)
@@ -223,9 +220,9 @@ func validateInstanceRunningHAProxyPrometheusExporter(t *testing.T, workingDir s
 	http_helper.HttpGetWithRetryWithCustomValidation(t, haproxyExporterURL, maxRetries, timeBetweenRetries, validate)
 }
 
-func validateInstanceRunningHAProxyDTaxHealthcheck(t *testing.T, workingDir string) {
+func validateInstanceRunningHAProxyBBCHealthcheck(t *testing.T, workingDir string) {
 
-	dtaxHealthcheckURL := getFromEnv(t, workingDir, "dtax_healthcheck_url")
+	dtaxHealthcheckURL := getFromEnv(t, workingDir, "bbc_healthcheck_url")
 	maxRetries := 3
 	timeBetweenRetries := 5 * time.Second
 
@@ -233,18 +230,6 @@ func validateInstanceRunningHAProxyDTaxHealthcheck(t *testing.T, workingDir stri
 		return 200 == statusCode
 	}
 	http_helper.HttpGetWithRetryWithCustomValidation(t, dtaxHealthcheckURL, maxRetries, timeBetweenRetries, validate)
-}
-
-func validateInstanceRunningHAProxyITaxHealthcheck(t *testing.T, workingDir string) {
-
-	itaxHealthcheckURL := getFromEnv(t, workingDir, "itax_healthcheck_url")
-	maxRetries := 3
-	timeBetweenRetries := 5 * time.Second
-
-	validate := func(statusCode int, body string) bool {
-		return 200 == statusCode
-	}
-	http_helper.HttpGetWithRetryWithCustomValidation(t, itaxHealthcheckURL, maxRetries, timeBetweenRetries, validate)
 }
 
 func validateinstanceRunningSSM(t *testing.T, workingDir string) {
@@ -263,7 +248,7 @@ func validateinstanceRunningSSM(t *testing.T, workingDir string) {
 	terminateInput := &ssm.TerminateSessionInput{
 		SessionId: output.SessionId,
 	}
-	ssmClient.TerminateSession(terminateInput)
+	_, _ = ssmClient.TerminateSession(terminateInput)
 }
 
 func validateInstanceRunningNodeExporter(t *testing.T, workingDir string) {
