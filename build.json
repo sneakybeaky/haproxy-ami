@@ -1,7 +1,7 @@
 {
   "min_packer_version": "1.0.4",
   "variables": {
-    "aws_region": "eu-west-1",
+    "aws_region": "eu-west-2",
     "source_ami_filter_name": "amzn2-ami-minimal-hvm-*",
     "source_ami_owners": "137112412989",
     "arch": "x86_64"
@@ -16,7 +16,7 @@
         "Base_AMI_ID": "{{ .SourceAMI }}",
         "Build_Region ": "{{ .BuildRegion }}"
       },
-      "ami_description": "HAProxy setup for Clareti / itax proxying",
+      "ami_description": "HAProxy setup",
       "instance_type": "t2.micro",
       "region": "{{user `aws_region`}}",
       "vpc_filter": {
