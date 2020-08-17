@@ -14,14 +14,10 @@ output "node_export_url" {
   value = "http://${aws_instance.haproxy.public_ip}:${var.node_export_port}/metrics"
 }
 
-output "dtax_healthcheck_url" {
-  value = "http://${aws_instance.haproxy.public_ip}:${var.dtax_healthcheck_port}/dtax_site_alive"
-}
-
-output "itax_healthcheck_url" {
-  value = "http://${aws_instance.haproxy.public_ip}:${var.itax_healthcheck_port}/itax_site_alive"
-}
-
 output "haproxy_exporter_url" {
   value = "http://${aws_instance.haproxy.public_ip}:${var.haproxy_exporter_port}/metrics"
+}
+
+output "bbc_healthcheck_url" {
+  value = "http://${aws_instance.haproxy.public_ip}:${var.bbc_healthcheck_port}/bbc_site_alive"
 }

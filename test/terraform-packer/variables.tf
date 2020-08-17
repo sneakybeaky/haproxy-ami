@@ -39,25 +39,17 @@ variable "stats_port" {
   default     = 5000
 }
 
-variable "dtax_healthcheck_port" {
-  description = "The port the EC2 Instance should listen on for HTTP requests healthcheck for dtax."
+variable "bbc_healthcheck_port" {
+  description = "The port the EC2 Instance should listen on for HTTP requests healthcheck for bbc."
   default     = 8080
 }
 
-variable "itax_healthcheck_port" {
-  description = "The port the EC2 Instance should listen on for HTTP requests healthcheck for itax."
-  default     = 8081
-}
 
-variable "dtax_port" {
+variable "bbc_port" {
   description = "The port the EC2 Instance should listen on for dtax proxy."
   default     = 9102
 }
 
-variable "itax_port" {
-  description = "The port the EC2 Instance should listen on for itax proxy."
-  default     = 9002
-}
 
 variable "haproxy_exporter_port" {
   description = "The port that exports haproxy prometheus metrics."

@@ -60,36 +60,22 @@ resource "aws_security_group" "haproxy" {
   }
 
   ingress {
-    from_port = "${var.dtax_healthcheck_port}"
-    to_port   = "${var.dtax_healthcheck_port}"
+    from_port = "${var.bbc_healthcheck_port}"
+    to_port   = "${var.bbc_healthcheck_port}"
     protocol  = "tcp"
 
     cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
   }
+
 
   ingress {
-    from_port = "${var.itax_healthcheck_port}"
-    to_port   = "${var.itax_healthcheck_port}"
+    from_port = "${var.bbc_port}"
+    to_port   = "${var.bbc_port}"
     protocol  = "tcp"
 
     cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
   }
 
-  ingress {
-    from_port = "${var.dtax_port}"
-    to_port   = "${var.dtax_port}"
-    protocol  = "tcp"
-
-    cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
-  }
-
-  ingress {
-    from_port = "${var.itax_port}"
-    to_port   = "${var.itax_port}"
-    protocol  = "tcp"
-
-    cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
-  }
 
   ingress {
     from_port = "${var.haproxy_exporter_port}"
