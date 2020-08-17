@@ -18,7 +18,6 @@ import (
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
-	"github.com/stretchr/testify/assert"
 )
 
 var DefaultRetryablePackerErrors = map[string]string{
@@ -67,7 +66,6 @@ func TestDeployAndBehaviour(t *testing.T) {
 		validateInstanceRunningHAProxyStats(t, workingDir)
 		validateInstanceRunningHAProxy(t, workingDir, 9102)
 		validateInstanceRunningHAProxyPrometheusExporter(t, workingDir)
-		//validateInstanceRunningHAProxyBBCHealthcheck(t, workingDir)
 		validateinstanceRunningSSM(t, workingDir)
 		validateInstanceRunningNodeExporter(t, workingDir)
 		validateCloudWatchLogs(t, workingDir)
@@ -280,15 +278,33 @@ func validateCloudWatchLogs(t *testing.T, workingDir string) {
 		cwClient := aws.NewCloudWatchLogsClient(t, awsRegion)
 		prefix := fmt.Sprintf("/aws/ec2/haproxy-%s", instanceID)
 
-		input := &cloudwatchlogs.DescribeLogGroupsInput{
-			LogGroupNamePrefix: &prefix,
-		}
-		output, err := cwClient.DescribeLogGroups(input)
+		maxRetries := 3
+		timeBetweenRetries := 5 * time.Second
+
+		_, err := retry.DoWithRetryE(t, fmt.Sprintf("Checking log groups at %s", prefix), maxRetries, timeBetweenRetries, func() (string, error) {
+
+			input := &cloudwatchlogs.DescribeLogGroupsInput{
+				LogGroupNamePrefix: &prefix,
+			}
+
+			output, err := cwClient.DescribeLogGroups(input)
+
+			if err != nil {
+				return "", retry.FatalError{
+					Underlying: err,
+				}
+			}
+
+			if len(output.LogGroups) != 1 {
+				return "", fmt.Errorf("expecting 1 log group at %s, got %d", prefix, len(output.LogGroups))
+			}
+
+			return "", nil
+		})
 
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, 1, len(output.LogGroups), "Expecting 1 log group at %s", prefix)
 
 	})
 
