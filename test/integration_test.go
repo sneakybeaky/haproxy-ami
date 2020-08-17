@@ -253,19 +253,23 @@ func validateinstanceRunningSSM(t *testing.T, workingDir string) {
 
 func validateInstanceRunningNodeExporter(t *testing.T, workingDir string) {
 
-	nodeExportURL := getFromEnv(t, workingDir, "node_export_url")
-	maxRetries := 3
-	timeBetweenRetries := 5 * time.Second
+	t.Run("Instance Running Node Exporter", func(t *testing.T) {
+		nodeExportURL := getFromEnv(t, workingDir, "node_export_url")
+		maxRetries := 3
+		timeBetweenRetries := 5 * time.Second
 
-	validate := func(statusCode int, body string) bool {
-		return 200 == statusCode && strings.Contains(body, "go_threads")
-	}
-	http_helper.HttpGetWithRetryWithCustomValidation(t, nodeExportURL, maxRetries, timeBetweenRetries, validate)
+		validate := func(statusCode int, body string) bool {
+			return 200 == statusCode && strings.Contains(body, "go_threads")
+		}
+		http_helper.HttpGetWithRetryWithCustomValidation(t, nodeExportURL, maxRetries, timeBetweenRetries, validate)
+
+	})
+
 }
 
 func validateCloudWatchLogs(t *testing.T, workingDir string) {
 
-	t.Run("validateCloudWatchLogs", func(t *testing.T) {
+	t.Run("CloudWatch Logs Setup", func(t *testing.T) {
 		instanceID := getFromEnv(t, workingDir, "instance_id")
 		cwClient := aws.NewCloudWatchLogsClient(t, awsRegion)
 		prefix := fmt.Sprintf("/aws/ec2/haproxy-%s", instanceID)
