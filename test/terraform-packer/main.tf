@@ -11,12 +11,12 @@ provider "aws" {
   region = "${var.aws_region}"
 }
 
-data "aws_vpc" "sog_connected" {
-  id = "vpc-02cb100cef74d8546"
+data "aws_vpc" "build" {
+  id = "vpc-09098752f0701b2b4"
 }
 
 data "aws_subnet_ids" "sog_connected" {
-  vpc_id = "${data.aws_vpc.sog_connected.id}"
+  vpc_id = "${data.aws_vpc.build.id}"
 }
 
 # The public IP address of the machine terraform was invoked from.
@@ -49,7 +49,7 @@ resource "aws_instance" "haproxy" {
 
 resource "aws_security_group" "haproxy" {
   name   = "${var.instance_name}"
-  vpc_id = "${data.aws_vpc.sog_connected.id}"
+  vpc_id = "${data.aws_vpc.build.id}"
 
   ingress {
     from_port = "${var.stats_port}"
