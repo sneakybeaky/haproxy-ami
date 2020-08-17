@@ -240,16 +240,29 @@ func validateinstanceRunningSSM(t *testing.T, workingDir string) {
 		input := &ssm.StartSessionInput{
 			Target: &instanceID,
 		}
-		output, err := ssmClient.StartSession(input)
+
+		maxRetries := 3
+		timeBetweenRetries := 5 * time.Second
+
+		_, err := retry.DoWithRetryE(t, fmt.Sprintf("Creating SSM session to instance %s", instanceID), maxRetries, timeBetweenRetries, func() (string, error) {
+
+			output, err := ssmClient.StartSession(input)
+
+			if err != nil {
+				return "", err
+			}
+
+			terminateInput := &ssm.TerminateSessionInput{
+				SessionId: output.SessionId,
+			}
+			_, _ = ssmClient.TerminateSession(terminateInput)
+
+			return "", nil
+		})
 
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("unable to create SSM session to instance %s : %v", instanceID, err)
 		}
-
-		terminateInput := &ssm.TerminateSessionInput{
-			SessionId: output.SessionId,
-		}
-		_, _ = ssmClient.TerminateSession(terminateInput)
 
 	})
 
