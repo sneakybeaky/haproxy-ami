@@ -1,0 +1,32 @@
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: golang
+    tag: 1.12
+
+params:
+  AWS_ACCESS_KEY_ID:
+  AWS_SECRET_ACCESS_KEY:
+  AWS_DEFAULT_REGION:
+
+inputs:
+  - name: source
+  - name: tfstate
+  - name: tfoutput
+
+run:
+  path: /bin/bash
+  args:
+    - -exec
+    - |
+      echo "Testing..."
+      while IFS= read -r line; do l=$(echo $line | tr -d ' '); export $l ; done < tfoutput/output
+      cd source/haproxy/test
+      export SKIP_logs=true
+      export SKIP_build_ami=true
+      export SKIP_deploy_terraform=true
+      export SKIP_cleanup_ami=true
+      export SKIP_cleanup_terraform=true
+      go test -count=1 -timeout 30m

@@ -1,0 +1,34 @@
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: hashicorp/terraform
+    tag: 0.11.14
+
+params:
+  AWS_ACCESS_KEY_ID:
+  AWS_SECRET_ACCESS_KEY:
+  AWS_DEFAULT_REGION:
+
+inputs:
+  - name: ami-id
+  - name: source
+  - name: tfstate
+
+run:
+  path: /bin/sh
+  args:
+    - -exec
+    - |
+      echo "Destroying..."
+      AMI=$(cat ami-id/amiID)
+      VERSION=$(cat ami-id/version)
+      cp tfstate/terraform.tfstate source/haproxy/test/terraform-packer/terraform.tfstate
+      cd source/haproxy/test/terraform-packer
+      terraform init
+      terraform destroy -auto-approve \
+        -var "ami_id=$AMI" \
+        -var "prefix=$VERSION" \
+        -var "aws_region=$AWS_DEFAULT_REGION" \
+        -var "instance_name=terratest-http-example-$VERSION" 

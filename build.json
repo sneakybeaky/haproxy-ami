@@ -1,0 +1,74 @@
+{
+  "min_packer_version": "1.0.4",
+  "variables": {
+    "aws_region": "eu-west-1",
+    "source_ami_filter_name": "amzn2-ami-minimal-hvm-*",
+    "source_ami_owners": "137112412989",
+    "arch": "x86_64"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "ami_name": "sog-itax-haproxy-{{timestamp}}",
+      "tags": {
+        "Created": "{{isotime  | clean_resource_name}}",
+        "Base_AMI_Name": "{{ .SourceAMIName }}",
+        "Base_AMI_ID": "{{ .SourceAMI }}",
+        "Build_Region ": "{{ .BuildRegion }}"
+      },
+      "ami_description": "HAProxy setup for Clareti / itax proxying",
+      "instance_type": "t2.micro",
+      "region": "{{user `aws_region`}}",
+      "vpc_filter": {
+        "filters": {
+          "tag:Class": "build",
+          "isDefault": "false"
+        }
+      },
+      "subnet_filter": {
+        "filters": {
+          "tag:Class": "build"
+        },
+        "random": true
+      },
+      "source_ami_filter": {
+        "filters": {
+          "name": "{{user `source_ami_filter_name`}}",
+          "architecture": "{{user `arch`}}",
+          "root-device-type": "ebs",
+          "state": "available",
+          "virtualization-type": "hvm"
+        },
+        "owners": [
+          "{{user `source_ami_owners`}}"
+        ],
+        "most_recent": true
+      },
+      "ssh_username": "ec2-user"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "mkdir -p /tmp/haproxy/"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "{{ template_dir }}/files/",
+      "destination": "/tmp/haproxy/"
+    },
+    {
+      "type": "shell",
+      "script": "{{ template_dir }}/install-haproxy.sh"
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "manifest",
+      "output": "manifest.json",
+      "strip_path": true
+    }
+  ]
+}

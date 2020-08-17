@@ -1,0 +1,32 @@
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: hashicorp/packer
+    tag: 1.4.1
+
+params:
+  AWS_ACCESS_KEY_ID:
+  AWS_SECRET_ACCESS_KEY:
+  AWS_DEFAULT_REGION:
+
+inputs:
+  - name: source
+
+outputs:
+  - name: ami
+
+run:
+  path: /bin/sh
+  args:
+    - -exec
+    - |
+      echo "Building..."
+      packer validate source/haproxy/build.json
+      packer build -var "region=$AWS_DEFAULT_REGION" -machine-readable source/haproxy/build.json | \
+        tee /tmp/output
+      grep -q -v "error-count" /tmp/output
+      AMI=$(awk -F: '/artifact,0,id/ { print $2 }' /tmp/output)
+      echo "$AMI" > ami/id
+

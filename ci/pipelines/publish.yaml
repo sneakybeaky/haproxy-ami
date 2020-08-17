@@ -1,0 +1,155 @@
+resources:
+  - name: source-repo
+    type: git
+    source:
+      uri: https://github.com/states-of-guernsey/aws-amis.git
+      branch: master
+      paths:
+        - haproxy/
+      username: ((github.username))
+      password: ((github.password))
+  - name: ami-id
+    type: s3
+    source:
+      region_name: eu-west-1
+      bucket: ((build_artifacts_bucket.bucket_name))
+      access_key_id: ((build_artifacts_bucket.access_key_id))
+      secret_access_key: ((build_artifacts_bucket.secret_access_key))
+      versioned_file: haproxy-AMI/amiID
+  - name: tfstate
+    type: s3
+    source:
+      region_name: eu-west-1
+      bucket: ((build_artifacts_bucket.bucket_name))
+      access_key_id: ((build_artifacts_bucket.access_key_id))
+      secret_access_key: ((build_artifacts_bucket.secret_access_key))
+      versioned_file: haproxy-AMI/terraform.tfstate
+  - name: tfoutput
+    type: s3
+    source:
+      region_name: eu-west-1
+      bucket: ((build_artifacts_bucket.bucket_name))
+      access_key_id: ((build_artifacts_bucket.access_key_id))
+      secret_access_key: ((build_artifacts_bucket.secret_access_key))
+      versioned_file: haproxy-AMI/output
+
+jobs:
+  - name: build
+    plan:
+      - get: source-repo
+        trigger: true
+      - task: "packer build"
+        file: source-repo/haproxy/ci/tasks/build-ami.yaml
+        input_mapping:
+          source: source-repo
+        params:
+          AWS_ACCESS_KEY_ID: ((packer_build.access_key_id))
+          AWS_SECRET_ACCESS_KEY: ((packer_build.secret_access_key))
+          AWS_DEFAULT_REGION: eu-west-1
+      - put: ami-id
+        params:
+          file: ami/id
+
+  - name: deploy-for-tests
+    plan:
+      - get: ami-id
+        passed: [build]
+        trigger: true
+      - get: source-repo
+        passed: [build]
+        trigger: true
+      - task: "create instance"
+        file: source-repo/haproxy/ci/tasks/create-instance.yaml
+        input_mapping:
+          source: source-repo
+        params:
+          AWS_ACCESS_KEY_ID: ((ami_test.access_key_id))
+          AWS_SECRET_ACCESS_KEY: ((ami_test.secret_access_key))
+          AWS_DEFAULT_REGION: eu-west-1
+        on_failure:
+          task: "destroy instance"
+          file: source-repo/haproxy/ci/tasks/destroy-instance.yaml
+          input_mapping:
+            source: source-repo
+          params:
+            AWS_ACCESS_KEY_ID: ((ami_test.access_key_id))
+            AWS_SECRET_ACCESS_KEY: ((ami_test.secret_access_key))
+            AWS_DEFAULT_REGION: eu-west-1
+      - put: tfstate
+        params:
+          file: tfstate/terraform.tfstate
+      - put: tfoutput
+        params:
+          file: tfoutput/output
+  
+  - name: test
+    plan:
+      - get: source-repo
+        passed: [deploy-for-tests]
+        trigger: true
+      - get: ami-id
+        passed: [deploy-for-tests]
+        trigger: true
+      - get: tfstate
+        passed: [deploy-for-tests]
+        trigger: true
+      - get: tfoutput
+        passed: [deploy-for-tests]
+        trigger: true
+      - task: "run tests"
+        file: source-repo/haproxy/ci/tasks/run-tests.yaml
+        input_mapping:
+          source: source-repo
+        params:
+          AWS_ACCESS_KEY_ID: ((ami_test.access_key_id))
+          AWS_SECRET_ACCESS_KEY: ((ami_test.secret_access_key))
+          AWS_DEFAULT_REGION: eu-west-1
+  
+  - name: publish
+    plan:
+      - get: source-repo
+        passed: [test]
+        trigger: true
+      - get: ami-id
+        passed: [test]
+        trigger: true
+      - task: "tag AMI"
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: mikesir87/aws-cli
+          inputs:
+            - name: ami-id
+          params:
+            AWS_ACCESS_KEY_ID: ((packer_build.access_key_id))
+            AWS_SECRET_ACCESS_KEY: ((packer_build.secret_access_key))
+            AWS_DEFAULT_REGION: eu-west-1
+          run:
+            path: /bin/sh
+            args:
+              - -exec
+              - |
+                AMI=$(cat ami-id/amiID)
+                aws ec2 create-tags --resources $AMI --tags Key=Validated,Value=true
+
+  - name: destroy-tests-env
+    plan:
+      - get: ami-id
+        passed: [publish]
+        trigger: true
+      - get: tfstate
+        passed: [test]
+        trigger: true
+      - get: source-repo
+        passed: [publish]
+        trigger: true
+      - task: "destroy instance"
+        file: source-repo/haproxy/ci/tasks/destroy-instance.yaml
+        input_mapping:
+          source: source-repo
+        params:
+          AWS_ACCESS_KEY_ID: ((ami_test.access_key_id))
+          AWS_SECRET_ACCESS_KEY: ((ami_test.secret_access_key))
+          AWS_DEFAULT_REGION: eu-west-1
