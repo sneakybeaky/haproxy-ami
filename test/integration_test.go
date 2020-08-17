@@ -37,11 +37,12 @@ const awsRegion string = "eu-west-2"
 func TestDeployAndBehaviour(t *testing.T) {
 	t.Parallel()
 
+	// At the end of the test stage delete the AMI
 	defer test_structure.RunTestStage(t, "cleanup_ami", func() {
 		deleteAMI(t, awsRegion, workingDir)
 	})
 
-	// At the end of the test, undeploy the web app using Terraform
+	// At the end of the test, undeploy the AMI using Terraform
 	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
 		undeployUsingTerraform(t, workingDir)
 	})
@@ -57,11 +58,12 @@ func TestDeployAndBehaviour(t *testing.T) {
 		buildAMI(t, awsRegion, workingDir)
 	})
 
-	// Deploy the web app using Terraform
+	// Deploy the AMI using Terraform
 	test_structure.RunTestStage(t, "deploy_terraform", func() {
 		deployUsingTerraform(t, awsRegion, workingDir)
 	})
 
+	// Validation
 	test_structure.RunTestStage(t, "validate", func() {
 		validateInstanceRunningHAProxyStats(t, workingDir)
 		validateInstanceRunningHAProxy(t, workingDir, 9102)
