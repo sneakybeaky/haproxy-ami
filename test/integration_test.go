@@ -265,17 +265,21 @@ func validateInstanceRunningNodeExporter(t *testing.T, workingDir string) {
 
 func validateCloudWatchLogs(t *testing.T, workingDir string) {
 
-	instanceID := getFromEnv(t, workingDir, "instance_id")
-	cwClient := aws.NewCloudWatchLogsClient(t, awsRegion)
-	prefix := fmt.Sprintf("/aws/ec2/haproxy-%s", instanceID)
+	t.Run("validateCloudWatchLogs", func(t *testing.T) {
+		instanceID := getFromEnv(t, workingDir, "instance_id")
+		cwClient := aws.NewCloudWatchLogsClient(t, awsRegion)
+		prefix := fmt.Sprintf("/aws/ec2/haproxy-%s", instanceID)
 
-	input := &cloudwatchlogs.DescribeLogGroupsInput{
-		LogGroupNamePrefix: &prefix,
-	}
-	output, err := cwClient.DescribeLogGroups(input)
+		input := &cloudwatchlogs.DescribeLogGroupsInput{
+			LogGroupNamePrefix: &prefix,
+		}
+		output, err := cwClient.DescribeLogGroups(input)
 
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, 1, len(output.LogGroups))
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, 1, len(output.LogGroups), "Expecting 1 log group at %s", prefix)
+
+	})
+
 }
